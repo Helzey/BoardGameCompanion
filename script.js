@@ -83,6 +83,8 @@ async function loadCollection() {
 function renderList() {
   const sortBy = document.getElementById("sort").value;
   const playerFilter = parseInt(document.getElementById("playerFilter").value); // Zahl aus Filter
+  const timeMinFilter = parseInt(document.getElementById("timeMinFilter").value); // Zahl aus Filter
+  const timeMaxFilter = parseInt(document.getElementById("timeMaxFilter").value); // Zahl aus Filter
   const rankCategory = document.getElementById("rankCategory").value; // ausgewählte Kategorie
   const list = document.getElementById("games");
   list.innerHTML = "";
@@ -98,6 +100,22 @@ function renderList() {
     });
   }
 
+  // Filter nach Min Spieldauer
+  if (!isNaN(timeMinFilter)) {
+    filtered = filtered.filter(g => {
+      const minimum = parseInt(g.minPlaytime) || 100000;
+      return timeMinFilter <= minimum;
+    });
+  }
+
+  // Filter nach Max Spieldauer
+  if (!isNaN(timeMaxFilter)) {
+    filtered = filtered.filter(g => {
+      const maximum = parseInt(g.maxPlaytime) || 0;
+      return timeMaxFilter >= maximum;
+    });
+  }
+
   // Filter Kategorie-Rank
   filtered = filtered.filter(g => g.ranks[rankCategory]);
 
@@ -108,6 +126,9 @@ function renderList() {
     filtered.sort((a, b) => b.rating - a.rating);
   } else if (sortBy === "bggrating") {
     filtered.sort((a, b) => b.bggrating - a.bggrating);
+  } // TODO: Warum geht das nicht?
+   else if (sortBy === "time") {
+    filtered.sort((a, b) => parseInt(a.minPlaytime) - parseInt(b.minPlaytime));
   }
 
   // Rendern

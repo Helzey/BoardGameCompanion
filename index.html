@@ -20,6 +20,16 @@
   </div>  
 
   <div class="input-box">
+    <label for="timeMinFilter">Spieldauer Min:</label>
+    <input id="timeMinFilter" type="number" min="1" oninput="renderList()">
+  </div>  
+
+  <div class="input-box">
+    <label for="timeMaxFilter">Spieldauer Max:</label>
+    <input id="timeMaxFilter" type="number" min="1" oninput="renderList()">
+  </div>  
+
+  <div class="input-box">
     <label for="rankCategory">Kategorie:</label>
     <select id="rankCategory" onchange="renderList()">
       <option value="boardgame" selected>Gesamt</option>
@@ -40,6 +50,7 @@
       <option value="bggrating">BGG Bewertung</option>
       <option value="rating">Eigene Bewertung</option>
       <option value="name">Name</option>
+    <!--   <option value="time">Spieldauer</option> -->
     </select>
   </div>
 
