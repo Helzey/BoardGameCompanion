@@ -1,0 +1,70 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f5f5f5;
+}
+
+h1 {
+  text-align: center;
+}
+
+.input-box {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.input-box label {
+  margin-right: 6px;
+}
+
+input, button {
+  padding: 8px;
+  font-size: 16px;
+}
+
+#status {
+  text-align: center;
+  margin: 10px;
+  font-style: italic;
+}
+
+.game-list {
+  max-width: 600px;
+  margin: auto;
+}
+
+.row {
+  display: flex;
+}
+
+.column {
+  flex: 50%;
+}
+
+.game {
+  background: white;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;   /* Thumbnail mittig */
+}
+
+.game img {
+  width: 60px;
+  height: auto;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.game-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;  /* Inhalte untereinander */
+}
+
+.game-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
