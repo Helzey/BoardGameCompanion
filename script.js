@@ -1,4 +1,10 @@
-let gamesData = []; // globale Variable für die aktuelle Sammlung
+let v_gamesData = []; // Variable für die aktuelle Sammlung
+let v_versionData = []; // Variable für die Objekt-Versionen
+let v_resData = []; // Resultierende Daten aus Abfragen
+let v_displayData = []; // anzeige Variable kann nur Grundspiele oder mit Erweiterung sein
+let v_sort = "bggrating"; // Variable für die Sortierung Initial nach bggrating
+let v_displayMode = "standard"; // Variable für die Anzeigeart (wie werden zB Erweiterungen angezeigt)
+
 
 async function fetchBggCollection(username) {
   const params = new URLSearchParams({
@@ -6,16 +12,31 @@ async function fetchBggCollection(username) {
     own: 1,
     stats: 1
   });
-  // Erweiterungen ausschließen?
-  // subtype: "boardgame",
-  // excludesubtype: "boardgameexpansion"
-   const url = `https://boardgamegeek.com/xmlapi2/collection?${params.toString()}`;
+  const url = `https://boardgamegeek.com/xmlapi2/collection?${params.toString()}`;
 
   for (let tries = 0; tries < 10; tries++) {
     const res = await fetch(url);
     if (res.status === 202) {
       document.getElementById("status").textContent = "Daten werden vorbereitet... bitte warten.";
-      await new Promise(r => setTimeout(r, 4000));
+      await new Promise(r => setTimeout(r, 500));
+      continue;
+    }
+    if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+    return await res.text();
+  }
+  throw new Error("BGG API antwortet nicht (zu viele 202).");
+}
+
+async function fetchVersionData(id) {
+  const params = new URLSearchParams({
+    id,
+    versions: 1
+  });
+  const url = `https://boardgamegeek.com/xmlapi2/thing?${params.toString()}`;
+  for (let tries = 0; tries < 20; tries++) {
+    const res = await fetch(url);
+    if (res.status === 202) {
+      await new Promise(r => setTimeout(r, 10));
       continue;
     }
     if (!res.ok) throw new Error(`Fehler: ${res.status}`);
@@ -39,17 +60,31 @@ async function loadCollection() {
   document.getElementById("games").innerHTML = "";
 
   try {
+    // Grundspiele
     const xmlText = await fetchBggCollection(username);
     const xml = parseXml(xmlText);
-
     const items = xml.querySelectorAll("item");
     if (items.length === 0) {
       document.getElementById("status").textContent = "Keine Spiele gefunden.";
       return;
     }
 
-    // Array aus den Items bauen
-    gamesData = Array.from(items).map(item => {
+    let idAray = [];
+    let allIds = "";
+    let cntIds = 0;
+    v_gamesData = Array.from(items).map(item => {
+      const id = item.getAttribute("objectid");
+      if (cntIds == 0) {
+        cntIds ++;
+        allIds = id;
+      } else if (cntIds < 19) { // max 20 Items auf einmal
+        cntIds ++;
+        allIds = allIds + "," + id;
+      } else {
+        cntIds = 0;
+        allIds = allIds + "," + id;
+        idAray.push(allIds);
+      }
       const ranks = {};
       item.querySelectorAll("ranks > rank").forEach(r => {
         const catName = r.getAttribute("name");
@@ -58,11 +93,11 @@ async function loadCollection() {
       });
 
       return {
-        id: item.getAttribute("objectid"),
+        id,
         name: item.querySelector("name")?.innerHTML || "Unbekannt",
         year: item.querySelector("yearpublished")?.innerHTML || "",
         rating: parseFloat(item.querySelector("stats > rating")?.getAttribute("value")) || 0,
-        bggrating: parseFloat(item.querySelector("stats > rating > bayesaverage")?.getAttribute("value")).toFixed(2) || "",
+        bggrating: parseFloat(item.querySelector("stats > rating > bayesaverage")?.getAttribute("value")) || 0,
         minPlaytime: item.querySelector("stats")?.getAttribute("minplaytime") || "?",
         maxPlaytime: item.querySelector("stats")?.getAttribute("maxplaytime") || "?",
         minPlayers: item.querySelector("stats")?.getAttribute("minplayers") || "?",
@@ -71,8 +106,71 @@ async function loadCollection() {
         ranks
       };
     });
+    if (cntIds != 0) {idAray.push(allIds);} // Übrigen Werte auch mitnehmen!
 
-    document.getElementById("status").textContent = `Gefundene Spiele: ${gamesData.length}`;
+    v_versionData = [];
+    for (const idList of idAray) {
+      const versionXmlText = await fetchVersionData(idList);
+      const versionXml = parseXml(versionXmlText);
+      const versionItems = versionXml.querySelectorAll("items > item");
+
+      v_versionData.push(...Array.from(versionItems).map(versionItem => {
+        let verGermName;
+        let verThumb;
+        for (const r of versionItem.querySelectorAll("versions > item")) {
+          // Prüfen, ob es ein language-Link mit value="German" gibt
+          const lang = r.querySelector('link[type="language"][value="German"]');
+          if (lang) {
+            // Canonicalname-Element holen
+            const canonical = r.querySelector("canonicalname");
+            if (canonical) {
+              verGermName = canonical.getAttribute("value");
+              verThumb = r.querySelector("thumbnail")?.textContent;
+              break;
+            }
+          }
+        }
+        return {
+          verId: versionItem.getAttribute("id"),
+          verType: versionItem.getAttribute("type"),
+          verBaseGameId: versionItem.querySelector('link[type="boardgameexpansion"][inbound="true"]')?.getAttribute("id") || 0,
+          verGermName,
+          verThumb
+        };
+      }));
+    }
+
+    // Zusammenführen der beiden Arrays in 1 Ergebnisarray
+    const mergedMap = new Map();
+    // Erstes Array rein
+    v_gamesData.forEach(obj => {
+      mergedMap.set(obj.id, { ...obj });
+    });
+    // Versionsinfos hinzufügen zu Objekten
+    v_versionData.forEach(obj => {
+      if (mergedMap.has(obj.verId)) {
+        mergedMap.set(obj.verId, { ...mergedMap.get(obj.verId), ...obj });
+      }
+    });
+    // Erweiterungen hinzufügen zu Grundspielen
+    mergedMap.forEach(obj => {
+      if (obj.verType == "boardgameexpansion" && mergedMap.has(obj.verBaseGameId)) {
+        const current = mergedMap.get(obj.verBaseGameId);
+        if (current.Exp) {
+          current.Exp.push({ ...obj });
+        } else {
+          current.Exp = [{ ...obj }];
+        }
+        mergedMap.set(obj.verBaseGameId, current);
+      }
+    });
+
+    // Ergebnis als Array zurück
+    v_resData = Array.from(mergedMap.values());
+    // Erweiterungen rausfiltern
+    v_resData = v_resData.filter(g => {return g.verType == "boardgame"});
+
+    document.getElementById("status").textContent = "Gefundene Elemente: ${v_gamesData.length}";
     renderList();
 
   } catch (err) {
@@ -89,7 +187,7 @@ function renderList() {
   const list = document.getElementById("games");
   list.innerHTML = "";
 
-  let filtered = [...gamesData];
+  let filtered = [...v_resData];
 
   // Filter nach Spielerzahl
   if (!isNaN(playerFilter)) {
@@ -126,9 +224,6 @@ function renderList() {
     filtered.sort((a, b) => b.rating - a.rating);
   } else if (sortBy === "bggrating") {
     filtered.sort((a, b) => b.bggrating - a.bggrating);
-  } // TODO: Warum geht das nicht?
-   else if (sortBy === "time") {
-    filtered.sort((a, b) => parseInt(a.minPlaytime) - parseInt(b.minPlaytime));
   }
 
   // Rendern
@@ -147,13 +242,25 @@ function renderList() {
     const div = document.createElement("div");
     div.className = "game";
     div.innerHTML = `
-      ${g.thumb ? `<img src="${g.thumb}" alt="Cover">` : ""}
+      ${g.thumb ? `<img src="${g.verThumb ? g.verThumb : g.thumb}" alt="Cover">` : ""}
       <div class="game-details">
         <div class="game-title">
           <a href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" rel="noopener noreferrer">
-            ${g.name} ${g.year ? "(" + g.year + ")" : ""}
+            ${g.verGermName ? g.verGermName : g.name} ${g.year ? "(" + g.year + ")" : ""}
           </a>
         </div>
+        
+        ${Array.isArray(g.Exp) && g.Exp.length > 0 ? `
+          <div class="game-expansions">
+            ${g.Exp.map(exp => `
+              <div class="expansion">+ 
+                <a href="https://boardgamegeek.com/boardgame/${exp.id}" target="_blank" rel="noopener noreferrer">
+                  ${exp.verGermName ? exp.verGermName : exp.name} ${exp.year ? "(" + exp.year + ")" : ""}
+                </a>
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
 
         <div class="row">
           <div class="column">
@@ -164,7 +271,7 @@ function renderList() {
             <div>Dauer: ${playtime} min</div>
           </div>
           <div class="column">
-            <div>BGG Bewertung: ${g.bggrating || "-"}</div>
+            <div>BGG Bewertung: ${g.bggrating.toFixed(2) || "-"}</div>
             <div>BGG Rang: ${rankValue}</div>
           </div>
         </div>
@@ -186,7 +293,7 @@ window.onload = () => {
   }
 
   // Sammlung neu laden, wenn Username geändert und Enter gedrückt wird
-  usernameInput.addEventListener("keypress", (e) => {
+  usernameInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       loadCollection();
     }
@@ -199,3 +306,33 @@ window.onload = () => {
     }
   });
 };
+
+// Overlay schließen mit Escape
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".overlay").forEach(o => o.classList.add("hidden"));
+  }
+});
+
+// Filter Overlay
+document.getElementById("filterToggle").addEventListener("click", () => {
+  document.getElementById("filterOverlay").classList.remove("hidden");
+});
+document.getElementById("filterClose").addEventListener("click", () => {
+  document.getElementById("filterOverlay").classList.add("hidden");
+});
+
+// Sort Overlay
+document.getElementById("sortToggle").addEventListener("click", () => {
+  document.getElementById("sortOverlay").classList.remove("hidden");
+});
+document.getElementById("sortClose").addEventListener("click", () => {
+  document.getElementById("sortOverlay").classList.add("hidden");
+});
+
+// Schließen beim Klick außerhalb
+window.addEventListener("click", (event) => {
+  if (event.target.classList.contains("overlay")) {
+    event.target.classList.add("hidden");
+  }
+});

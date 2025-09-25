@@ -7,66 +7,95 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0077cc">
 </head>
-<body>
-  <h1>Chrissys Board Game Companion</h1>
+<body>  
+
+  <header>
+    <h1>Board Game Companion</h1>
+    <div class="header-icons">
+      <button id="filterToggle" title="Filter">
+        <i data-lucide="filter"></i>
+      </button>
+      <button id="sortToggle" title="Sortieren">
+        <i data-lucide="list-filter"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Filter Overlay -->
+  <div id="filterOverlay" class="overlay hidden">
+    <div class="overlay-content">
+      <button class="close" id="filterClose">
+        <i data-lucide="x"></i>
+      </button>
+      <h2>Filter</h2>
+      <div class="input-box">
+        <label for="playerFilter">Spielerzahl:</label>
+        <input id="playerFilter" type="number" min="1" oninput="renderList()">
+      </div>  
+      <div class="input-box">
+        <label for="timeMinFilter">Spieldauer Min:</label>
+        <input id="timeMinFilter" type="number" min="1" oninput="renderList()">
+      </div>  
+      <div class="input-box">
+        <label for="timeMaxFilter">Spieldauer Max:</label>
+        <input id="timeMaxFilter" type="number" min="1" oninput="renderList()">
+      </div>  
+      <div class="input-box">
+        <label for="rankCategory">Kategorie:</label>
+        <select id="rankCategory" onchange="renderList()">
+          <option value="boardgame" selected>Gesamt</option>
+          <option value="strategygames">Strategie</option>
+          <option value="familygames">Familie</option>
+          <option value="partygames">Party</option>
+          <option value="thematic">Thematisch</option>
+          <option value="cgs">Customizable</option>
+          <option value="abstracts">Abstrakt</option>
+          <option value="wargames">Wargames</option>
+          </select>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Sort Overlay  -->
+  <div id="sortOverlay" class="overlay hidden">
+    <div class="overlay-content">
+      <button class="close" id="sortClose">
+        <i data-lucide="x"></i>
+      </button>
+      <h2>Sortieren</h2>
+      <div class="input-box">
+        <label for="sort">Sortieren nach:</label>
+        <select id="sort" onchange="renderList()">
+          <option value="bggrating">BGG Bewertung</option>
+          <option value="rating">Eigene Bewertung</option>
+          <option value="name">Name</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
   <div class="input-box">
     <input id="username" type="text" value="kikerlini" placeholder="BGG Benutzername eingeben">
   </div>
 
-  <div class="input-box">
-    <label for="playerFilter">Spielerzahl:</label>
-    <input id="playerFilter" type="number" min="1" oninput="renderList()">
-  </div>  
-
-  <div class="input-box">
-    <label for="timeMinFilter">Spieldauer Min:</label>
-    <input id="timeMinFilter" type="number" min="1" oninput="renderList()">
-  </div>  
-
-  <div class="input-box">
-    <label for="timeMaxFilter">Spieldauer Max:</label>
-    <input id="timeMaxFilter" type="number" min="1" oninput="renderList()">
-  </div>  
-
-  <div class="input-box">
-    <label for="rankCategory">Kategorie:</label>
-    <select id="rankCategory" onchange="renderList()">
-      <option value="boardgame" selected>Gesamt</option>
-      <option value="strategygames">Strategie</option>
-      <option value="familygames">Familie</option>
-      <option value="partygames">Party</option>
-      <option value="thematic">Thematisch</option>
-      <option value="cgs">Customizable</option>
-      <option value="abstracts">Abstrakt</option>
-      <option value="wargames">Wargames</option>
-      <!-- du kannst hier beliebige weitere Kategorien hinzufügen -->
-    </select>
-  </div>
-
-  <div class="input-box">
-    <label for="sort">Sortieren nach:</label>
-    <select id="sort" onchange="renderList()">
-      <option value="bggrating">BGG Bewertung</option>
-      <option value="rating">Eigene Bewertung</option>
-      <option value="name">Name</option>
-    <!--   <option value="time">Spieldauer</option> -->
-    </select>
-  </div>
 
   <div id="status"></div>
   <div id="games" class="game-list"></div>
 
   <script src="script.js"></script>
-<!--
+
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
+    lucide.createIcons();
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./serviceWorker.js")
         .then(() => console.log("Service Worker registriert"))
         .catch(err => console.error("SW Registrierung fehlgeschlagen:", err));
     }
+
   </script>
--->
 
 </body>
 </html>

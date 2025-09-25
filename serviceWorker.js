@@ -1,4 +1,4 @@
-const CACHE_NAME = "bgg-collection-cache-v1";
+const CACHE_NAME = "bgcCache_V0.0.2";
 const urlsToCache = [
   "./",
   "./index.html",
