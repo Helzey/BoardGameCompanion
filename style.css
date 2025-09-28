@@ -191,13 +191,36 @@ input, button {
   padding: 1.5rem;
   border-radius: 12px;
   width: 90%;
-  max-width: 400px;
+  max-width: 600px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   position: relative;
 }
 
 .overlay-content h2 {
   margin-top: 0;
-  font-size: 1.2rem;
+  font-size: 2rem;
+  font-weight: bold;
   color: #0077cc;
+}
+
+/* Option-Buttons */
+.option-list button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  background-color: #0077cc;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.option-list button:hover,
+.option-list button:active {
+  background-color: #005fa3;
+  transform: scale(1.05);
 }

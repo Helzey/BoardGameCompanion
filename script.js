@@ -98,7 +98,7 @@ async function loadCollection() {
         year: item.querySelector("yearpublished")?.innerHTML || "",
         rating: parseFloat(item.querySelector("stats > rating")?.getAttribute("value")) || 0,
         bggrating: parseFloat(item.querySelector("stats > rating > bayesaverage")?.getAttribute("value")) || 0,
-        minPlaytime: item.querySelector("stats")?.getAttribute("minplaytime") || "?",
+        minPlaytime: item.querySelector("stats")?.getAttribute("minplaytime") || "0",
         maxPlaytime: item.querySelector("stats")?.getAttribute("maxplaytime") || "?",
         minPlayers: item.querySelector("stats")?.getAttribute("minplayers") || "?",
         maxPlayers: item.querySelector("stats")?.getAttribute("maxplayers") || "?",
@@ -134,6 +134,8 @@ async function loadCollection() {
           verId: versionItem.getAttribute("id"),
           verType: versionItem.getAttribute("type"),
           verBaseGameId: versionItem.querySelector('link[type="boardgameexpansion"][inbound="true"]')?.getAttribute("id") || 0,
+          verBGGBest: extractPlayerCounts(versionItem.querySelector('poll-summary[name="suggested_numplayers"][title="User Suggested Number of Players"] > result[name="bestwith"]')?.getAttribute("value")),
+          verBGGRec: extractPlayerCounts(versionItem.querySelector('poll-summary[name="suggested_numplayers"][title="User Suggested Number of Players"] > result[name="recommmendedwith"]')?.getAttribute("value")),
           verGermName,
           verThumb
         };
@@ -161,9 +163,17 @@ async function loadCollection() {
         } else {
           current.Exp = [{ ...obj }];
         }
+        // Spielerempfehlungen Updaten, um auch die der Erweiterungen zu enthalten
+        current.minPlayers = Math.min(current.minPlayers, obj.minPlayers);
+        current.maxPlayers = Math.max(current.maxPlayers, obj.maxPlayers);
+        current.verBGGBest = (new Set([...current.verBGGBest, ...obj.verBGGBest]))
+        current.verBGGRec =  (new Set([...current.verBGGRec , ...obj.verBGGRec ]))
+        // Aktualisiertes Objekt in Map pushen
         mergedMap.set(obj.verBaseGameId, current);
       }
     });
+
+    console.log(mergedMap.get('169786'));
 
     // Ergebnis als Array zurück
     v_resData = Array.from(mergedMap.values());
@@ -179,7 +189,6 @@ async function loadCollection() {
 }
 
 function renderList() {
-  const sortBy = document.getElementById("sort").value;
   const playerFilter = parseInt(document.getElementById("playerFilter").value); // Zahl aus Filter
   const timeMinFilter = parseInt(document.getElementById("timeMinFilter").value); // Zahl aus Filter
   const timeMaxFilter = parseInt(document.getElementById("timeMaxFilter").value); // Zahl aus Filter
@@ -218,11 +227,11 @@ function renderList() {
   filtered = filtered.filter(g => g.ranks[rankCategory]);
 
   // Sortierung
-  if (sortBy === "name") {
-    filtered.sort((a, b) => a.name.localeCompare(b.name));
-  } else if (sortBy === "rating") {
+  if (v_sort === "name") {
+    filtered.sort((a, b) => (a.verGermName ? a.verGermName : a.name).localeCompare(b.verGermName ? b.verGermName : b.name));
+  } else if (v_sort === "rating") {
     filtered.sort((a, b) => b.rating - a.rating);
-  } else if (sortBy === "bggrating") {
+  } else if (v_sort === "bggrating") {
     filtered.sort((a, b) => b.bggrating - a.bggrating);
   }
 
@@ -241,12 +250,14 @@ function renderList() {
     const rankValue = g.ranks[rankCategory] || "–"; // ausgewählte Kategorie anzeigen
     const div = document.createElement("div");
     div.className = "game";
+    // Archiv thumb: ${g.verThumb ? g.verThumb : g.thumb}
     div.innerHTML = `
-      ${g.thumb ? `<img src="${g.verThumb ? g.verThumb : g.thumb}" alt="Cover">` : ""}
+      ${g.thumb ? `<img src="${g.thumb}" alt="Cover">` : ""}
       <div class="game-details">
         <div class="game-title">
           <a href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" rel="noopener noreferrer">
-            ${g.verGermName ? g.verGermName : g.name} ${g.year ? "(" + g.year + ")" : ""}
+            <!-- ${g.verGermName ? g.verGermName : g.name} ${g.year ? "(" + g.year + ")" : ""} -->
+            ${g.name} ${g.year ? "(" + g.year + ")" : ""}
           </a>
         </div>
         
@@ -255,7 +266,8 @@ function renderList() {
             ${g.Exp.map(exp => `
               <div class="expansion">+ 
                 <a href="https://boardgamegeek.com/boardgame/${exp.id}" target="_blank" rel="noopener noreferrer">
-                  ${exp.verGermName ? exp.verGermName : exp.name} ${exp.year ? "(" + exp.year + ")" : ""}
+                   <!--  ${exp.verGermName ? exp.verGermName : exp.name} ${exp.year ? "(" + exp.year + ")" : ""} -->
+                  ${exp.name} ${exp.year ? "(" + exp.year + ")" : ""}
                 </a>
               </div>
             `).join("")}
@@ -264,11 +276,13 @@ function renderList() {
 
         <div class="row">
           <div class="column">
-            <div>Spieler: ${players}</div>
-            <div>Bewertung: ${g.rating || "-"}</div>
+            <div>Spielende: ${players}</div>
+            <div>Empfohlen: ${formatPlayerCounts(g.verBGGRec)}</div>
+            <div>Am Besten: ${formatPlayerCounts(g.verBGGBest)}</div>
           </div>
           <div class="column">
             <div>Dauer: ${playtime} min</div>
+            <div>Bewertung: ${g.rating || "-"}</div>
           </div>
           <div class="column">
             <div>BGG Bewertung: ${g.bggrating.toFixed(2) || "-"}</div>
@@ -282,6 +296,64 @@ function renderList() {
 
   document.getElementById("status").textContent = 
     `Gefundene Spiele: ${filtered.length} (Kategorie: ${rankCategory}${!isNaN(playerFilter) ? ", Spieler: " + playerFilter : ""})`;
+}
+
+// Sortierwert setzen und neu rendern
+function setSort(value) {
+  document.getElementById("sortOverlay").classList.add("hidden");
+  v_sort = value;
+  renderList();
+}
+
+// Hilfsfunktion: Spielerzahlen aus dem Text extrahieren
+function extractPlayerCounts(text) {
+  // Zahlen oder Ranges wie 4–5 oder 2–4 matchen
+  const regex = /(\d+)(?:\s*[–-]\s*(\d+))?/g;
+  const result = new Set(); // keine doppelten Werte
+
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const start = parseInt(match[1], 10);
+    const end = match[2] ? parseInt(match[2], 10) : start;
+
+    for (let i = start; i <= end; i++) {
+      result.add(i);
+    }
+  }
+  return result;
+}
+
+// Hilfsfunktion: Spielerzahlen aus Set in Display Text umwandeln
+function formatPlayerCounts(numbers) {
+  if (!numbers || numbers.size === 0) return "";
+
+  // In ein sortiertes Array umwandeln
+  const arr = [...numbers].sort((a, b) => a - b);
+
+  const ranges = [];
+  let start = arr[0];
+  let prev = arr[0];
+
+  for (let i = 1; i <= arr.length; i++) {
+    const current = arr[i];
+
+    if (current === prev + 1) {
+      // läuft noch in der Range
+      prev = current;
+    } else {
+      // Range abgeschlossen
+      if (start === prev) {
+        ranges.push(`${start}`);
+      } else {
+        ranges.push(`${start} - ${prev}`);
+      }
+
+      start = current;
+      prev = current;
+    }
+  }
+
+  return ranges.join(", ");
 }
 
 window.onload = () => {

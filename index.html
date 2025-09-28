@@ -43,10 +43,11 @@
       <div class="input-box">
         <label for="rankCategory">Kategorie:</label>
         <select id="rankCategory" onchange="renderList()">
-          <option value="boardgame" selected>Gesamt</option>
+          <option value="boardgame" selected>Alle Spiele</option>
           <option value="strategygames">Strategie</option>
           <option value="familygames">Familie</option>
           <option value="partygames">Party</option>
+          <option value="childrensgames">Kinder</option>
           <option value="thematic">Thematisch</option>
           <option value="cgs">Customizable</option>
           <option value="abstracts">Abstrakt</option>
@@ -63,14 +64,11 @@
       <button class="close" id="sortClose">
         <i data-lucide="x"></i>
       </button>
-      <h2>Sortieren</h2>
-      <div class="input-box">
-        <label for="sort">Sortieren nach:</label>
-        <select id="sort" onchange="renderList()">
-          <option value="bggrating">BGG Bewertung</option>
-          <option value="rating">Eigene Bewertung</option>
-          <option value="name">Name</option>
-        </select>
+      <h2>Sortieren nach</h2>
+      <div class="option-list">
+        <button onclick="setSort('bggrating')">BGG Bewertung</button>
+        <button onclick="setSort('rating')">Eigene Bewertung</button>
+        <button onclick="setSort('name')">Name</button>
       </div>
     </div>
   </div>
@@ -78,7 +76,6 @@
   <div class="input-box">
     <input id="username" type="text" value="kikerlini" placeholder="BGG Benutzername eingeben">
   </div>
-
 
   <div id="status"></div>
   <div id="games" class="game-list"></div>
