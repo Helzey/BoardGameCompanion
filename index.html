@@ -66,15 +66,20 @@
       </button>
       <h2>Sortieren nach</h2>
       <div class="option-list">
+        <button onclick="setSort('name')">Alphabetisch</button>
         <button onclick="setSort('bggrating')">BGG Bewertung</button>
         <button onclick="setSort('rating')">Eigene Bewertung</button>
-        <button onclick="setSort('name')">Name</button>
       </div>
     </div>
   </div>
 
-  <div class="input-box">
-    <input id="username" type="text" value="kikerlini" placeholder="BGG Benutzername eingeben">
+  <div class="bggInput">
+    <div class="input-box">
+      <input id="username" type="text" value="kikerlini" placeholder="BGG Benutzername eingeben">
+    </div>
+    <a href="https://boardgamegeek.com/" target="_blank" rel="noopener noreferrer" class="right">
+      <img src="icons/powered_by_BGG_01_SM.png" alt="Powered by BGG" width="180" style="border-radius: 8px;">
+    </a>
   </div>
 
   <div id="status"></div>

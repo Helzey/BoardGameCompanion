@@ -1,3 +1,18 @@
+const bggToken = '19219650-bbf5-4a1b-b592-29caf4ee5d4f'; // BGG Auth Access Token
+// Liste mit IDs, die wie Promos behandelt werden sollen (also Minierweiterungen etc)
+const promoIds = [249086, 186554, 228552, 223914, 212139, 196421, 279304, 262151, 403162, 293660, 293661, 293662, 293663, 400739, 372024, 323392];
+/* Doku
+249086 - Marco Polo Geheimpfade
+186554 - Marco Polo Neue Charaktere
+228552, 223914, 212139, 196421 - Aeons End kleine Erweiterungen
+279304 - Scythe Modular Board
+262151 - Scythe Begegnungen
+403162 - Drachenhüter Profezeiungen des Urdrachen
+293660, 293661, 293662, 293663 - Harry Potter Aufstieg der Todesser Promokarten
+400739, 372024, 323392 - Paleo Mini Expansions
+*/
+
+
 let v_gamesData = []; // Variable für die aktuelle Sammlung
 let v_versionData = []; // Variable für die Objekt-Versionen
 let v_resData = []; // Resultierende Daten aus Abfragen
@@ -15,10 +30,10 @@ async function fetchBggCollection(username) {
   const url = `https://boardgamegeek.com/xmlapi2/collection?${params.toString()}`;
 
   for (let tries = 0; tries < 10; tries++) {
-    const res = await fetch(url);
+    const res = await fetch(url, {headers: {"Authorization": `Bearer ${bggToken}`}});
     if (res.status === 202) {
       document.getElementById("status").textContent = "Daten werden vorbereitet... bitte warten.";
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 100));
       continue;
     }
     if (!res.ok) throw new Error(`Fehler: ${res.status}`);
@@ -34,7 +49,7 @@ async function fetchVersionData(id) {
   });
   const url = `https://boardgamegeek.com/xmlapi2/thing?${params.toString()}`;
   for (let tries = 0; tries < 20; tries++) {
-    const res = await fetch(url);
+    const res = await fetch(url, {headers: {"Authorization": `Bearer ${bggToken}`}});
     if (res.status === 202) {
       await new Promise(r => setTimeout(r, 10));
       continue;
@@ -103,7 +118,10 @@ async function loadCollection() {
         minPlayers: item.querySelector("stats")?.getAttribute("minplayers") || "?",
         maxPlayers: item.querySelector("stats")?.getAttribute("maxplayers") || "?",
         thumb: item.querySelector("thumbnail")?.textContent || "",
-        ranks
+        ranks,
+        copies: [],
+        Exp: [],
+        promos: []
       };
     });
     if (cntIds != 0) {idAray.push(allIds);} // Übrigen Werte auch mitnehmen!
@@ -115,29 +133,12 @@ async function loadCollection() {
       const versionItems = versionXml.querySelectorAll("items > item");
 
       v_versionData.push(...Array.from(versionItems).map(versionItem => {
-        let verGermName;
-        let verThumb;
-        for (const r of versionItem.querySelectorAll("versions > item")) {
-          // Prüfen, ob es ein language-Link mit value="German" gibt
-          const lang = r.querySelector('link[type="language"][value="German"]');
-          if (lang) {
-            // Canonicalname-Element holen
-            const canonical = r.querySelector("canonicalname");
-            if (canonical) {
-              verGermName = canonical.getAttribute("value");
-              verThumb = r.querySelector("thumbnail")?.textContent;
-              break;
-            }
-          }
-        }
         return {
           verId: versionItem.getAttribute("id"),
           verType: versionItem.getAttribute("type"),
           verBaseGameId: versionItem.querySelector('link[type="boardgameexpansion"][inbound="true"]')?.getAttribute("id") || 0,
           verBGGBest: extractPlayerCounts(versionItem.querySelector('poll-summary[name="suggested_numplayers"][title="User Suggested Number of Players"] > result[name="bestwith"]')?.getAttribute("value")),
           verBGGRec: extractPlayerCounts(versionItem.querySelector('poll-summary[name="suggested_numplayers"][title="User Suggested Number of Players"] > result[name="recommmendedwith"]')?.getAttribute("value")),
-          verGermName,
-          verThumb
         };
       }));
     }
@@ -146,11 +147,26 @@ async function loadCollection() {
     const mergedMap = new Map();
     // Erstes Array rein
     v_gamesData.forEach(obj => {
-      mergedMap.set(obj.id, { ...obj });
+      const id = obj.id;
+      // Falls schon vorhanden → in copies einfügen
+      if (mergedMap.has(id)) {
+        mergedMap.get(id).copies.push(obj);
+      } else {
+        mergedMap.set(id, obj);
+      }
     });
     // Versionsinfos hinzufügen zu Objekten
     v_versionData.forEach(obj => {
       if (mergedMap.has(obj.verId)) {
+        // Funkoverse Sets als Erweiterungen betrachten
+        if(["292032", "292031", "292034"].includes(obj.verId) && mergedMap.has("284775")) {
+          obj.verType = "boardgameexpansion";
+          obj.verBaseGameId = "284775";
+        // Aeon's End: Für die Ewigkeit zu Grundspiel
+        } else if(["218417"].includes(obj.verId) && mergedMap.has("191189")) {
+          obj.verType = "boardgameexpansion";
+          obj.verBaseGameId = "191189";
+        }
         mergedMap.set(obj.verId, { ...mergedMap.get(obj.verId), ...obj });
       }
     });
@@ -158,22 +174,25 @@ async function loadCollection() {
     mergedMap.forEach(obj => {
       if (obj.verType == "boardgameexpansion" && mergedMap.has(obj.verBaseGameId)) {
         const current = mergedMap.get(obj.verBaseGameId);
-        if (current.Exp) {
-          current.Exp.push({ ...obj });
+        if(promoIds.includes(Number(obj.id)) || obj.name.match("Promo") || obj.name.match("Helden-Pack") || obj.name.match("T.I.M.E Stories: ")) {
+          // Mini-Erweiterungen, Promos, etc
+          current.promos.push(obj);
         } else {
-          current.Exp = [{ ...obj }];
+          // "Vollwertige Erweiterung"
+          current.Exp.push(obj);
+          // Spielerempfehlungen Updaten, um auch die der Erweiterungen zu enthalten
+          current.minPlayers = Math.min(current.minPlayers, obj.minPlayers);
+          current.maxPlayers = Math.max(current.maxPlayers, obj.maxPlayers);
+          current.verBGGBest = (new Set([...current.verBGGBest, ...obj.verBGGBest]))
+          current.verBGGRec =  (new Set([...current.verBGGRec , ...obj.verBGGRec ]))
         }
-        // Spielerempfehlungen Updaten, um auch die der Erweiterungen zu enthalten
-        current.minPlayers = Math.min(current.minPlayers, obj.minPlayers);
-        current.maxPlayers = Math.max(current.maxPlayers, obj.maxPlayers);
-        current.verBGGBest = (new Set([...current.verBGGBest, ...obj.verBGGBest]))
-        current.verBGGRec =  (new Set([...current.verBGGRec , ...obj.verBGGRec ]))
         // Aktualisiertes Objekt in Map pushen
         mergedMap.set(obj.verBaseGameId, current);
       }
     });
 
-    console.log(mergedMap.get('169786'));
+    console.log(mergedMap.get('284775'));
+    console.log(mergedMap.get('292032'));
 
     // Ergebnis als Array zurück
     v_resData = Array.from(mergedMap.values());
@@ -228,7 +247,7 @@ function renderList() {
 
   // Sortierung
   if (v_sort === "name") {
-    filtered.sort((a, b) => (a.verGermName ? a.verGermName : a.name).localeCompare(b.verGermName ? b.verGermName : b.name));
+    filtered.sort((a, b) => a.name.localeCompare(b.name));
   } else if (v_sort === "rating") {
     filtered.sort((a, b) => b.rating - a.rating);
   } else if (v_sort === "bggrating") {
@@ -250,27 +269,57 @@ function renderList() {
     const rankValue = g.ranks[rankCategory] || "–"; // ausgewählte Kategorie anzeigen
     const div = document.createElement("div");
     div.className = "game";
-    // Archiv thumb: ${g.verThumb ? g.verThumb : g.thumb}
     div.innerHTML = `
       ${g.thumb ? `<img src="${g.thumb}" alt="Cover">` : ""}
       <div class="game-details">
         <div class="game-title">
           <a href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" rel="noopener noreferrer">
-            <!-- ${g.verGermName ? g.verGermName : g.name} ${g.year ? "(" + g.year + ")" : ""} -->
+            <!-- ${g.name} ${g.year ? "(" + g.year + ")" : ""} -->
             ${g.name} ${g.year ? "(" + g.year + ")" : ""}
           </a>
         </div>
         
-        ${Array.isArray(g.Exp) && g.Exp.length > 0 ? `
+        ${g.copies.length > 0 ? `
+          <div class="game-copies">
+            ${g.copies.map(copy => `
+              <div class="copy">
+                <a href="https://boardgamegeek.com/boardgame/${copy.id}" target="_blank" rel="noopener noreferrer">
+                   <!--  ${copy.name} ${copy.year ? "(" + copy.year + ")" : ""} -->
+                  ${copy.name} ${copy.year ? "(" + copy.year + ")" : ""}
+                </a>
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+
+        ${g.Exp.length > 0 ? `
           <div class="game-expansions">
             ${g.Exp.map(exp => `
               <div class="expansion">+ 
                 <a href="https://boardgamegeek.com/boardgame/${exp.id}" target="_blank" rel="noopener noreferrer">
-                   <!--  ${exp.verGermName ? exp.verGermName : exp.name} ${exp.year ? "(" + exp.year + ")" : ""} -->
+                   <!--  ${exp.name} ${exp.year ? "(" + exp.year + ")" : ""} -->
                   ${exp.name} ${exp.year ? "(" + exp.year + ")" : ""}
                 </a>
               </div>
             `).join("")}
+          </div>
+        ` : ""}
+
+      ${g.promos.length > 0 ? `
+          <div class="game-promos">
+            <div class="promo-list hidden">
+              ${g.promos.map(promo => `
+                <div class="promo">+ 
+                  <a href="https://boardgamegeek.com/boardgame/${promo.id}" target="_blank" rel="noopener noreferrer">
+                    <!--  ${promo.name} ${promo.year ? "(" + promo.year + ")" : ""} -->
+                    ${promo.name} ${promo.year ? "(" + promo.year + ")" : ""}
+                  </a>
+                </div>
+              `).join("")}
+            </div>
+            <button class="toggle-promo" data-id="${g.id}">
+              Promos/Mini-Erweiterungen anzeigen
+            </button>
           </div>
         ` : ""}
 
@@ -292,6 +341,16 @@ function renderList() {
       </div>
     `;
     list.appendChild(div);
+  });
+
+  // Toggle-Funktion für Promos
+  document.querySelectorAll(".toggle-promo").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const parent = btn.closest(".game-promos");
+      const list = parent.querySelector(".promo-list");
+      const isHidden = list.classList.toggle("hidden");
+      btn.textContent = isHidden ? "Promos/Mini-Erweiterungen anzeigen" : "Promos/Mini-Erweiterungen ausblenden";
+    });
   });
 
   document.getElementById("status").textContent = 
