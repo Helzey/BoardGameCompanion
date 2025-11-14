@@ -28,31 +28,50 @@
         <i data-lucide="x"></i>
       </button>
       <h2>Filter</h2>
-      <div class="input-box">
-        <label for="playerFilter">Spielerzahl:</label>
-        <input id="playerFilter" type="number" min="1" oninput="renderList()">
-      </div>  
-      <div class="input-box">
-        <label for="timeMinFilter">Spieldauer Min:</label>
-        <input id="timeMinFilter" type="number" min="1" oninput="renderList()">
-      </div>  
-      <div class="input-box">
-        <label for="timeMaxFilter">Spieldauer Max:</label>
-        <input id="timeMaxFilter" type="number" min="1" oninput="renderList()">
-      </div>  
-      <div class="input-box">
-        <label for="rankCategory">Kategorie:</label>
-        <select id="rankCategory" onchange="renderList()">
-          <option value="boardgame" selected>Alle Spiele</option>
-          <option value="strategygames">Strategie</option>
-          <option value="familygames">Familie</option>
-          <option value="partygames">Party</option>
-          <option value="childrensgames">Kinder</option>
-          <option value="thematic">Thematisch</option>
-          <option value="cgs">Customizable</option>
-          <option value="abstracts">Abstrakt</option>
-          <option value="wargames">Wargames</option>
-          </select>
+      <div class="filter-option-list">
+        <div class="filter-input">
+          <label for="playerFilter">Spielerzahl:</label>
+          <input id="playerFilter" type="number" min="1" oninput="renderList()">
+        </div>  
+        <div class="filter-input">
+          <label>Modus:</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="playerMode" value="möglich" checked onchange="renderList()">
+              Möglich
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="playerMode" value="empfohlen" onchange="renderList()">
+              Empfohlen
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="playerMode" value="ambesten" onchange="renderList()">
+              Am besten
+            </label>
+          </div>
+        </div>
+        <div class="filter-input">
+          <label for="timeMinFilter">Spieldauer Min:</label>
+          <input id="timeMinFilter" type="number" min="1" oninput="renderList()">
+        </div>  
+        <div class="filter-input">
+          <label for="timeMaxFilter">Spieldauer Max:</label>
+          <input id="timeMaxFilter" type="number" min="1" oninput="renderList()">
+        </div>  
+        <div class="filter-input">
+          <label for="rankCategory">Kategorie:</label>
+          <select id="rankCategory" onchange="renderList()">
+            <option value="boardgame" selected>Alle Spiele</option>
+            <option value="strategygames">Strategie</option>
+            <option value="familygames">Familie</option>
+            <option value="partygames">Party</option>
+            <option value="childrensgames">Kinder</option>
+            <option value="thematic">Thematisch</option>
+            <option value="cgs">Customizable</option>
+            <option value="abstracts">Abstrakt</option>
+            <option value="wargames">Wargames</option>
+            </select>
+        </div>
       </div>
     </div>
   </div>

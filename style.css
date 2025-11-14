@@ -263,6 +263,106 @@ input, button {
   transform: scale(1.05);
 }
 
+
+.filter-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 0;
+}
+
+/* Einzelne Filterzeile */
+.filter-input {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr; /* links Label, rechts Input */
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Labels */
+.filter-input label {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Inputs */
+.filter-input input,
+.filter-input select {
+  width: 93%;
+  padding: 8px 10px;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  transition: all 0.2s ease;
+}
+
+/* Hover & Fokus */
+.filter-input input:focus,
+.filter-input select:focus {
+  border-color: #0077cc;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(0,119,204,0.3);
+  outline: none;
+}
+
+/* Dropdown schöner */
+.filter-input select {
+  cursor: pointer;
+}
+
+/* Mobile Anpassung */
+@media (max-width: 480px) {
+  .filter-input {
+    grid-template-columns: 1fr; /* untereinander */
+  }
+
+  .filter-input label {
+    margin-bottom: 4px;
+  }
+}
+
+/* Container für die Radio-Gruppe */
+.radio-group {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+/* Einzelne Option */
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.15s ease;
+}
+
+/* Hover-Effekt */
+.radio-option:hover {
+  border-color: #0077cc;
+  background: #f0f8ff;
+}
+
+/* Radio-Button Styling */
+.radio-option input[type="radio"] {
+  accent-color: #0077cc;
+  width: 16px;
+  height: 16px;
+}
+
 .bggInput {
   position: relative;
   display: flex;

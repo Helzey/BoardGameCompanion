@@ -208,6 +208,7 @@ async function loadCollection() {
 }
 
 function renderList() {
+  const playerMode = document.querySelector('input[name="playerMode"]:checked').value; // Auf welches Feld der Spielerzahl Filter angewendet werden soll
   const playerFilter = parseInt(document.getElementById("playerFilter").value); // Zahl aus Filter
   const timeMinFilter = parseInt(document.getElementById("timeMinFilter").value); // Zahl aus Filter
   const timeMaxFilter = parseInt(document.getElementById("timeMaxFilter").value); // Zahl aus Filter
@@ -220,9 +221,21 @@ function renderList() {
   // Filter nach Spielerzahl
   if (!isNaN(playerFilter)) {
     filtered = filtered.filter(g => {
-      const min = parseInt(g.minPlayers) || 0;
-      const max = parseInt(g.maxPlayers) || 99;
-      return playerFilter >= min && playerFilter <= max;
+      // Modus: "möglich"
+      if (playerMode === "möglich") {
+        const min = parseInt(g.minPlayers) || 0;
+        const max = parseInt(g.maxPlayers) || 99;
+        return playerFilter >= min && playerFilter <= max;
+      }
+      // Empfohlen
+      if (playerMode === "empfohlen") {
+        return g.verBGGRec.has(playerFilter);
+      }
+      // Am Besten
+      if (playerMode === "ambesten") {
+        return g.verBGGBest.has(playerFilter)
+      }
+      return true;
     });
   }
 
@@ -327,14 +340,14 @@ function renderList() {
           <div class="column">
             <div>Spielende: ${players}</div>
             <div>Empfohlen: ${formatPlayerCounts(g.verBGGRec)}</div>
-            <div>Am Besten: ${formatPlayerCounts(g.verBGGBest)}</div>
+            <div>Optimal: ${formatPlayerCounts(g.verBGGBest)}</div>
           </div>
           <div class="column">
-            <div>Dauer: ${playtime} min</div>
-            <div>Bewertung: ${g.rating || "-"}</div>
+            <div>Dauer: ${playtime}</div>
+            <div>Rating: ${g.rating || "-"}</div>
           </div>
           <div class="column">
-            <div>BGG Bewertung: ${g.bggrating.toFixed(2) || "-"}</div>
+            <div>BGG Rating: ${g.bggrating.toFixed(2) || "-"}</div>
             <div>BGG Rang: ${rankValue}</div>
           </div>
         </div>
