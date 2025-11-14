@@ -1,4 +1,4 @@
-const CACHE_NAME = "bgcCache_V0.2.1";
+const CACHE_NAME = "bgcCache_V0.2.2";
 const ASSETS = [
   "./",
   "./index.html",
